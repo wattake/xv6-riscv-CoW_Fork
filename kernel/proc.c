@@ -6,6 +6,8 @@
 #include "proc.h"
 #include "defs.h"
 
+#define cow_fork
+
 struct cpu cpus[NCPU];
 
 struct proc proc[NPROC];
@@ -317,6 +319,20 @@ fork(void)
 
   return pid;
 }
+
+#ifdef cow_fork
+
+int ref_cnt[PHYSTOP/PGSIZE];  // size < 10^6 
+
+int inc_ref(void *pa){
+  return ++ref_cnt[(uint64)pa/PGSIZE];
+}
+
+int dec_ref(void *pa){
+  return --ref_cnt[(uint64)pa/PGSIZE];
+}
+
+#endif
 
 // Pass p's abandoned children to init.
 // Caller must hold wait_lock.

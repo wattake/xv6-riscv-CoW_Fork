@@ -9,6 +9,8 @@
 struct spinlock tickslock;
 uint ticks;
 
+#define cow_fork
+
 extern char trampoline[], uservec[], userret[];
 
 // in kernelvec.S, calls kerneltrap().
@@ -49,8 +51,8 @@ usertrap(void)
   
   // save user program counter.
   p->trapframe->epc = r_sepc();
-  
-  if(r_scause() == 8){
+  int scause = r_scause();
+  if(scause == 8){
     // system call
 
     if(p->killed)
@@ -65,7 +67,17 @@ usertrap(void)
     intr_on();
 
     syscall();
-  } else if((which_dev = devintr()) != 0){
+  } 
+  #ifdef cow_fork
+  else if(scause == 15){
+    
+    if(handle_pgfault(p->pagetable, r_stval())<0){
+      p->killed = 1;
+    }
+    
+  } 
+  #endif
+  else if((which_dev = devintr()) != 0){
     // ok
   } else {
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
